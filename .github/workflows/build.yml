@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: unzip -o MaSemaine.zip -d .
+      - run: unzip -o Salle.zip -d .
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
