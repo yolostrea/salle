@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Salle</title>
+<style>
+:root{--bg:#0e0e0f;--card:#18181b;--line:#2a2a2e;--tx:#ededee;--mu:#8b8b92;--ac:#c23345;--ok:#1D9E75;--gold:#e0b03f}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;padding:16px 14px 110px;max-width:560px;margin:0 auto}
+h1{font-size:22px;font-weight:600;margin:6px 0 14px}
+h2{font-size:12px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin:22px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+button,input,select,textarea{font:inherit;color:var(--tx)}
+input,select,textarea{background:#111113;border:1px solid var(--line);border-radius:10px;padding:9px;width:100%;min-width:0;color-scheme:dark}
+.b{background:var(--ac);color:#fff;border:0;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer}
+.g{background:none;border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+.x{background:none;border:0;color:var(--mu);font-size:20px;line-height:1;padding:0 6px;cursor:pointer}
+.back{background:none;border:0;color:var(--mu);font-size:15px;padding:6px 0;cursor:pointer}
+.h{color:var(--mu);font-size:12px}
+.err{color:#e0703f;font-size:13px}
+.big{font-size:26px;font-weight:600}
+.row{display:flex;align-items:center;gap:8px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left;cursor:pointer}
+.tile b{display:block;margin-bottom:2px}.tile span{color:var(--mu);font-size:13px}
+.set{display:grid;grid-template-columns:22px 1fr 1fr 46px;gap:8px;align-items:center;margin-top:8px}
+.set input{text-align:center;padding:10px 4px;font-size:17px}
+.set.done input{border-color:var(--ok);color:var(--ok)}
+.ck{height:44px;border-radius:10px;border:1px solid var(--line);background:none;font-size:20px;cursor:pointer;color:var(--mu)}
+.done .ck{background:var(--ok);border-color:var(--ok);color:#fff}
+.n{color:var(--mu);font-size:13px;text-align:center}
+.last{color:var(--mu);font-size:13px;margin-top:4px}
+.goal{font-size:13px;margin-top:4px;color:var(--gold)}
+.goal.up{color:var(--ok)}
+.pr{color:var(--gold);font-size:12px;font-weight:600}
+.lbl{display:grid;grid-template-columns:22px 1fr 1fr 46px;gap:8px;margin-top:10px}
+#timer{position:fixed;left:0;right:0;bottom:0;background:#1d1d21;border-top:1px solid var(--line);padding:12px 16px;display:none;align-items:center;gap:10px;max-width:560px;margin:0 auto}
+#timer .t{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;flex:1}
+#tbar{position:absolute;left:0;top:0;height:3px;background:var(--ac)}
+#toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:var(--gold);color:#1a1300;font-weight:600;padding:10px 16px;border-radius:12px;display:none;z-index:9}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs .on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.pe{display:grid;grid-template-columns:1fr 44px 44px 44px 50px 26px;gap:6px;align-items:center;margin-top:6px}
+.pe input{padding:7px 4px;font-size:13px;text-align:center}.pe input:first-child{text-align:left}
+</style>
+</head>
+<body>
+<div id="v"></div>
+<div id="timer"><div id="tbar"></div><div><div class="h">Repos</div><div class="t" id="tt">0:00</div></div><button class="g" onclick="addT(30)">+30 s</button><button class="g" onclick="stopT()">Passer</button></div>
+<div id="toast"></div>
+<script>
+const DEF={rot:["HA","JA","HB","JB"],s:{
+HA:{nom:"Haut du corps A",ex:[["Développé couché",4,6,10,2.5,150],["Tractions / tirage vertical",4,8,12,2.5,120],["Développé militaire",3,8,12,2.5,120],["Rowing horizontal",3,8,12,2.5,120],["Élévations latérales",4,12,20,1,75],["Curl biceps",3,8,12,1,75],["Extension triceps",3,8,12,1,75],["Abdos (relevés + gainage)",4,0,0,0,60]]},
+HB:{nom:"Haut du corps B",ex:[["Développé incliné haltères",4,8,12,2,120],["Tirage poitrine / tractions",4,8,12,2.5,120],["Dips",3,8,12,2.5,120],["Rowing haltère",3,8,12,2,90],["Élévations latérales",4,12,20,1,75],["Curl incliné (biceps étiré)",3,10,15,1,75],["Extension triceps prise haute",3,10,15,1,75],["Abdos (crunch lesté + roue)",4,0,0,0,60]]},
+JA:{nom:"Jambes A",ex:[["Squat",4,6,10,5,180],["Soulevé de terre roumain",3,8,12,5,150],["Presse à cuisses / fentes",3,10,15,5,120],["Leg curl (ischios)",3,10,15,2.5,90],["Mollets debout",4,12,20,2.5,75],["Gainage / abdos",3,0,0,0,60]]},
+JB:{nom:"Jambes B",ex:[["Soulevé de terre",4,6,10,5,180],["Fentes marchées",3,10,12,2,120],["Hack squat / presse",3,10,15,5,120],["Leg extension (quadris)",3,12,15,2.5,90],["Mollets assis",4,15,20,2.5,75],["Abdos roue",3,0,0,0,60]]}}};
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const ls=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem("sl:"+k));localStorage.setItem("sl:"+k,JSON.stringify(v))}catch(e){return null}};
+const dk=d=>{d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fmt=s=>new Date(s+"T12:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+const r05=x=>Math.round(x*2)/2;
+const fr=x=>String(x).replace('.',',');
+const rm=(kg,r)=>(+kg||0)*(1+(+r||0)/30);
+const go=h=>{if(location.hash.slice(1)===h)render();else location.hash=h;scrollTo(0,0)};
+const A=window.Android||null;
+
+let P=ls("prog");
+if(!P){P={rot:DEF.rot,s:{}};for(const k in DEF.s)P.s[k]={nom:DEF.s[k].nom,ex:DEF.s[k].ex.map(([n,s,lo,hi,inc,rest])=>({n,s,lo,hi,inc,rest}))};ls("prog",P)}
+let H=ls("hist")||[],C=ls("cur"),B=ls("body")||[],sel=null,peKey="HA";
+const save=()=>{ls("prog",P);ls("hist",H);ls("cur",C);ls("body",B)};
+
+function lastOf(n,skipId){for(let i=H.length-1;i>=0;i--){if(H[i].id===skipId)continue;const e=H[i].ex.find(e=>e.n===n);if(e&&e.sets.length)return{date:H[i].date,sets:e.sets}}return null}
+function bestRM(n){let b=0;H.forEach(s=>s.ex.forEach(e=>{if(e.n===n)e.sets.forEach(x=>b=Math.max(b,rm(x.kg,x.r)))}));return b}
+const setsTxt=ss=>ss.map(s=>`${s.kg}×${s.r}`).join(" · ");
+function suggest(e){
+  const L=lastOf(e.n),blank=(kg,r)=>Array.from({length:e.s},()=>({kg,r,done:false}));
+  if(!L)return{sets:blank("",e.lo||""),msg:"Première fois : trouve ta charge de travail",up:false};
+  const ws=L.sets,kg=Math.max(...ws.map(s=>+s.kg||0)),at=i=>ws[i]||ws[ws.length-1];
+  if(!e.lo)return{sets:Array.from({length:e.s},(_,i)=>({kg:at(i).kg,r:at(i).r,done:false})),msg:"Bats au moins une série de la dernière fois",up:false};
+  if(ws.length>=e.s&&ws.every(s=>+s.r>=e.hi)){const nk=r05(kg+e.inc);return{sets:blank(nk,e.lo),msg:`Tout validé : +${fr(e.inc)} kg → ${fr(nk)} kg`,up:true}}
+  const avg=ws.reduce((a,s)=>a+(+s.r||0),0)/ws.length;
+  if(kg>0&&avg<e.lo-1){const nk=Math.max(0,Math.round(kg*0.9/2.5)*2.5);return{sets:blank(nk,e.lo),msg:`Trop dur la dernière fois : on redescend à ${fr(nk)} kg`,up:false}}
+  return{sets:Array.from({length:e.s},(_,i)=>({kg,r:Math.min(e.hi,(+at(i).r||e.lo)+1),done:false})),msg:kg?`Garde ${fr(kg)} kg, vise +1 rep par série (max ${e.hi})`:`Au poids du corps : vise +1 rep par série (max ${e.hi})`,up:false};
+}
+function nextKey(){if(!H.length)return P.rot[0];const i=P.rot.indexOf(H[H.length-1].key);return P.rot[(i+1)%P.rot.length]}
+
+function home(){
+  const nk=nextKey(),wk=H.filter(s=>(Date.now()-new Date(s.date+"T12:00"))/864e5<7).length;
+  let h=`<h1>Salle</h1>`;
+  if(C)h+=`<button class="b" style="width:100%;margin-bottom:10px" onclick="go('seance')">Reprendre : ${esc(P.s[C.key].nom)}</button>`;
+  else h+=`<div class="card"><div class="h">Prochaine séance</div><div class="big">${esc(P.s[nk].nom)}</div><button class="b" style="width:100%;margin-top:10px" onclick="start('${nk}')">Commencer</button></div>`;
+  h+=`<div class="card row"><div style="flex:1"><div class="h">7 derniers jours</div><b>${wk} séance${wk>1?"s":""}</b></div><div style="flex:1"><div class="h">Dernière</div><b>${H.length?fmt(H[H.length-1].date)+" · "+esc(P.s[H[H.length-1].key]?.nom||""):"—"}</b></div></div>`;
+  if(!C)h+=`<h2>Autre séance</h2><div class="tiles">${P.rot.filter(k=>k!==nk).map(k=>`<button class="tile" onclick="start('${k}')"><b>${esc(P.s[k].nom)}</b><span>${P.s[k].ex.length} exercices</span></button>`).join("")}</div>`;
+  h+=`<h2>Suivi</h2><div class="tiles"><button class="tile" onclick="go('prog')"><b>Progression</b><span>Courbes par exercice</span></button><button class="tile" onclick="go('corps')"><b>Poids du corps</b><span>${B.length?B[B.length-1].poids+" kg":"À remplir"}</span></button><button class="tile" onclick="go('hist')"><b>Historique</b><span>${H.length} séances</span></button><button class="tile" onclick="go('reglages')"><b>Réglages</b><span>Programme, sauvegarde</span></button></div>`;
+  $("v").innerHTML=h;
+}
+function start(k){
+  C={id:Date.now().toString(36),date:dk(),key:k,ex:P.s[k].ex.map(e=>{const s=suggest(e);return{n:e.n,sets:s.sets,msg:s.msg,up:s.up}})};
+  save();if(A&&A.keepAwake)A.keepAwake(true);go("seance");
+}
+function seance(){
+  if(!C){go("home");return}
+  const prog=P.s[C.key].ex;
+  let h=`<button class="back" onclick="go('home')">‹ Accueil</button><h1>${esc(P.s[C.key].nom)}</h1>`;
+  C.ex.forEach((x,i)=>{
+    const e=prog.find(p=>p.n===x.n)||{s:x.sets.length,lo:0,hi:0,rest:90},L=lastOf(x.n,C.id),nd=x.sets.filter(s=>s.done).length;
+    h+=`<div class="card" id="ex${i}"><div class="row"><b style="flex:1">${esc(x.n)}</b><span class="h">${nd}/${x.sets.length} · ${e.s} × ${e.lo?e.lo+"-"+e.hi:"libre"}</span></div>
+    <div class="last">${L?"Dernière fois ("+fmt(L.date)+") : "+setsTxt(L.sets):"Pas encore d'historique"}</div>
+    <div class="goal ${x.up?"up":""}">${esc(x.msg||"")}</div>
+    <div class="lbl"><span></span><span class="n">kg</span><span class="n">reps</span><span></span></div>
+    ${x.sets.map((s,j)=>`<div class="set ${s.done?"done":""}"><span class="n">${j+1}${s.pr?'<div class="pr">★</div>':""}</span><input type="number" inputmode="decimal" step="0.5" value="${esc(s.kg)}" oninput="upd(${i},${j},'kg',this.value)"><input type="number" inputmode="numeric" value="${esc(s.r)}" oninput="upd(${i},${j},'r',this.value)"><button class="ck" aria-label="Valider la série" onclick="ok(${i},${j})">✓</button></div>`).join("")}
+    <div class="row" style="margin-top:10px"><button class="g" onclick="addSet(${i})">+ Série</button>${x.sets.length>1?`<button class="g" onclick="delSet(${i})">− Série</button>`:""}</div></div>`;
+  });
+  h+=`<button class="b" style="width:100%" onclick="finish()">Terminer la séance</button><p class="err" id="fe" style="margin-top:6px"></p><button class="g" style="width:100%;margin-top:6px" onclick="abandon()">Abandonner</button>`;
+  $("v").innerHTML=h;
+}
+function upd(i,j,f,v){C.ex[i].sets[j][f]=v===""?"":+v;save()}
+function ok(i,j){
+  const x=C.ex[i],s=x.sets[j];
+  if(!s.done&&(s.r===""||s.kg==="")){toast("Remplis les kg et les reps");return}
+  s.done=!s.done;s.pr=false;
+  if(s.done){
+    const b=bestRM(x.n),cur=rm(s.kg,s.r),others=x.sets.some((o,k)=>k!==j&&o.done&&o.pr);
+    if(b>0&&cur>b&&!others){s.pr=true;toast("Record sur "+x.n+" !")}
+    const e=P.s[C.key].ex.find(p=>p.n===x.n);startT(e?e.rest:90);
+  }
+  save();seance();
+}
+function addSet(i){const ss=C.ex[i].sets,l=ss[ss.length-1];ss.push({kg:l.kg,r:l.r,done:false});save();seance()}
+function delSet(i){C.ex[i].sets.pop();save();seance()}
+function finish(){
+  const ex=C.ex.map(x=>({n:x.n,sets:x.sets.filter(s=>s.done).map(s=>({kg:+s.kg||0,r:+s.r||0}))})).filter(x=>x.sets.length);
+  if(!ex.length){$("fe").textContent="Aucune série validée : coche au moins une série, ou abandonne la séance.";return}
+  const prs=C.ex.reduce((a,x)=>a+x.sets.filter(s=>s.done&&s.pr).length,0);
+  const vol=Math.round(ex.reduce((a,x)=>a+x.sets.reduce((b,s)=>b+s.kg*s.r,0),0));
+  H.push({id:C.id,date:C.date,key:C.key,ex});C=null;save();stopT();if(A&&A.keepAwake)A.keepAwake(false);
+  $("v").innerHTML=`<h1>Séance terminée</h1><div class="card"><div class="h">Volume soulevé</div><div class="big">${vol.toLocaleString("fr-FR")} kg</div><div class="h" style="margin-top:8px">${ex.length} exercices · ${ex.reduce((a,x)=>a+x.sets.length,0)} séries${prs?" · "+prs+" record"+(prs>1?"s":"")+" ★":""}</div></div><p class="h">La prochaine séance sera préremplie avec les charges à battre.</p><button class="b" style="width:100%;margin-top:12px" onclick="go('home')">OK</button>`;
+}
+let abd=0;
+function abandon(){if(!abd){abd=1;$("fe").textContent="Appuie encore une fois sur Abandonner pour supprimer la séance en cours.";setTimeout(()=>abd=0,4000);return}C=null;save();stopT();if(A&&A.keepAwake)A.keepAwake(false);go("home")}
+
+let T=null,ti=null;
+function startT(sec){T={end:Date.now()+sec*1000,tot:sec};if(A&&A.timer)A.timer(sec);$("timer").style.display="flex";tick();clearInterval(ti);ti=setInterval(tick,250)}
+function addT(s){if(!T)return;T.end+=s*1000;T.tot+=s;if(A&&A.timer)A.timer(Math.round((T.end-Date.now())/1000))}
+function stopT(){T=null;clearInterval(ti);$("timer").style.display="none";if(A&&A.cancelTimer)A.cancelTimer()}
+function tick(){if(!T)return;const r=Math.max(0,Math.round((T.end-Date.now())/1000));$("tt").textContent=Math.floor(r/60)+":"+String(r%60).padStart(2,"0");$("tbar").style.width=(100*r/T.tot)+"%";if(r<=0){if(!A)try{navigator.vibrate([300,150,300])}catch(e){}T=null;clearInterval(ti);$("tt").textContent="Go !";setTimeout(()=>{if(!T)$("timer").style.display="none"},4000)}}
+function toast(t){const e=$("toast");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",2500)}
+
+function chart(pts,unit){
+  if(pts.length<2)return `<div class="h">La courbe s'affiche à partir de 2 séances.</div>`;
+  const v=pts.map(p=>p.y),mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1,W=300,H2=120;
+  const q=pts.map((p,i)=>[Math.round((i/(pts.length-1)*(W-40)+10)*10)/10,Math.round((H2-12-(p.y-mn)/r*(H2-24))*10)/10]);
+  return `<svg viewBox="0 0 ${W} ${H2}" style="width:100%"><polyline fill="none" stroke="#c23345" stroke-width="2.5" stroke-linejoin="round" points="${q.map(a=>a.join(",")).join(" ")}"/>${q.map(a=>`<circle cx="${a[0]}" cy="${a[1]}" r="3" fill="#c23345"/>`).join("")}<text x="${W-2}" y="14" text-anchor="end" fill="#8b8b92" font-size="10">${Math.round(mx*10)/10} ${unit}</text><text x="${W-2}" y="${H2-4}" text-anchor="end" fill="#8b8b92" font-size="10">${Math.round(mn*10)/10} ${unit}</text></svg>`;
+}
+function prog(){
+  const names=[...new Set(H.flatMap(s=>s.ex.map(e=>e.n)))];
+  if(!sel||!names.includes(sel))sel=names[0];
+  let h=`<button class="back" onclick="go('home')">‹ Accueil</button><h1>Progression</h1>`;
+  if(!names.length){$("v").innerHTML=h+`<p class="h">Termine une première séance pour voir tes courbes.</p>`;return}
+  h+=`<select onchange="sel=this.value;prog()">${names.map(n=>`<option ${n===sel?"selected":""}>${esc(n)}</option>`).join("")}</select>`;
+  const rows=H.filter(s=>s.ex.some(e=>e.n===sel)).map(s=>{const e=s.ex.find(e=>e.n===sel);return{d:s.date,sets:e.sets,top:Math.max(...e.sets.map(x=>x.kg)),rm:Math.max(...e.sets.map(x=>rm(x.kg,x.r)))}});
+  const L=rows[rows.length-1],F=rows[0];
+  h+=`<div class="card" style="margin-top:10px"><div class="h">Force estimée (1RM)</div><div class="big">${Math.round(L.rm*10)/10} kg</div><div class="h">${rows.length>1?(L.rm-F.rm>=0?"+":"")+Math.round((L.rm-F.rm)*10)/10+" kg depuis le "+fmt(F.d):"Première séance enregistrée"}</div>${chart(rows.map(r=>({y:r.rm})),"kg")}</div>
+  <div class="card"><div class="h">Charge max par séance</div>${chart(rows.map(r=>({y:r.top})),"kg")}</div>
+  <h2>Détail</h2><div class="card">${rows.slice(-12).reverse().map(r=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)"><div class="h">${fmt(r.d)}</div>${setsTxt(r.sets)}</div>`).join("")}</div>`;
+  $("v").innerHTML=h;
+}
+const MF=[["poids","Poids","kg"],["taille","Taille","cm"],["poitrine","Poitrine","cm"],["bras","Bras","cm"],["cuisses","Cuisses","cm"]];
+function corps(){
+  const ms=B.slice().sort((a,b)=>a.date<b.date?-1:1),p=ms.filter(m=>m.poids!=null);
+  let h=`<button class="back" onclick="go('home')">‹ Accueil</button><h1>Poids du corps</h1>`;
+  if(p.length){const l=p[p.length-1],df=Math.round((l.poids-p[0].poids)*10)/10;h+=`<div class="card"><div class="big">${l.poids} kg</div><div class="h">${p.length>1?(df>0?"+":"")+df+" kg depuis le "+fmt(p[0].date):""}</div>${chart(p.slice(-30).map(m=>({y:m.poids})),"kg")}</div>`}
+  h+=`<div class="card" style="display:grid;gap:8px"><input id="m_date" type="date" value="${dk()}"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${MF.map(([k,l,u])=>`<input id="m_${k}" type="number" step="0.1" inputmode="decimal" placeholder="${l} (${u})">`).join("")}</div><button class="b" onclick="addM()">Enregistrer</button><p id="me" class="err"></p></div>`;
+  if(ms.length)h+=`<div class="card">${ms.slice(-10).reverse().map(m=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><div style="flex:1"><div class="h">${fmt(m.date)}</div>${MF.filter(([k])=>m[k]!=null).map(([k,l,u])=>`${l} ${m[k]} ${u}`).join(" · ")}</div><button class="x" aria-label="Supprimer" onclick="B=B.filter(b=>b.date!=='${m.date}');save();corps()">×</button></div>`).join("")}</div>`;
+  $("v").innerHTML=h;
+}
+function addM(){const date=$("m_date").value||dk(),e={date};let n=0;MF.forEach(([k])=>{const v=$("m_"+k).value;if(v!==""){e[k]=Math.round(+v*10)/10;n++}});if(!n){$("me").textContent="Remplis au moins une mesure";return}B=B.filter(b=>b.date!==date);B.push(e);save();corps()}
+function hist(){
+  let h=`<button class="back" onclick="go('home')">‹ Accueil</button><h1>Historique</h1>`;
+  h+=H.slice().reverse().map(s=>`<div class="card"><div class="row"><b style="flex:1">${esc(P.s[s.key]?.nom||s.key)}</b><span class="h">${fmt(s.date)}</span><button class="x" aria-label="Supprimer" onclick="delH('${s.id}')">×</button></div>${s.ex.map(e=>`<div style="margin-top:6px"><span class="h">${esc(e.n)}</span><br>${setsTxt(e.sets)}</div>`).join("")}</div>`).join("")||`<p class="h">Aucune séance pour l'instant.</p>`;
+  $("v").innerHTML=h;
+}
+let dh=null;
+function delH(id){if(dh!==id){dh=id;toast("Appuie encore sur × pour supprimer");setTimeout(()=>dh=null,3000);return}H=H.filter(s=>s.id!==id);save();hist()}
+function reglages(){
+  const ex=P.s[peKey].ex;
+  let h=`<button class="back" onclick="go('home')">‹ Accueil</button><h1>Réglages</h1><h2>Programme</h2>
+  <div class="tabs">${P.rot.map(k=>`<button class="g ${k===peKey?"on":""}" onclick="peKey='${k}';reglages()">${esc(P.s[k].nom)}</button>`).join("")}</div>
+  <div class="card" style="margin-top:10px"><div class="pe h"><span>Exercice</span><span>Séries</span><span>Min</span><span>Max</span><span>Repos s</span><span></span></div>
+  ${ex.map((e,i)=>`<div class="pe"><input value="${esc(e.n)}" onchange="pe(${i},'n',this.value)"><input type="number" value="${e.s}" onchange="pe(${i},'s',+this.value)"><input type="number" value="${e.lo}" onchange="pe(${i},'lo',+this.value)"><input type="number" value="${e.hi}" onchange="pe(${i},'hi',+this.value)"><input type="number" value="${e.rest}" onchange="pe(${i},'rest',+this.value)"><button class="x" aria-label="Retirer" onclick="P.s[peKey].ex.splice(${i},1);save();reglages()">×</button></div>`).join("")}
+  <p class="h" style="margin-top:8px">Min et max à 0 = séries libres (abdos, gainage). Progression : +2,5 kg en général, +5 kg sur les gros exos jambes, +1 kg sur les petits muscles.</p>
+  <button class="g" style="margin-top:8px" onclick="P.s[peKey].ex.push({n:'Nouvel exercice',s:3,lo:8,hi:12,inc:2.5,rest:90});save();reglages()">+ Ajouter un exercice</button></div>
+  <h2>Minuteur</h2><div class="card"><button class="g" onclick="startT(5)">Tester le minuteur (5 s)</button><p class="h" style="margin-top:6px">Quand le repos est fini, le téléphone vibre, même écran éteint.</p></div>
+  <h2>Sauvegarde</h2><p class="h">Tes données sont uniquement dans ce téléphone. Copie ce texte de temps en temps quelque part (notes, mail à toi-même). Pour restaurer : colle-le puis Restaurer.</p>
+  <textarea id="bk" rows="6" style="margin-top:8px">${esc(JSON.stringify({prog:P,hist:H,body:B}))}</textarea>
+  <div class="row" style="margin-top:8px"><button class="b" onclick="cpB()">Copier</button><button class="g" onclick="rsB()">Restaurer</button></div><p id="be" class="err"></p>`;
+  $("v").innerHTML=h;
+}
+function pe(i,f,v){const e=P.s[peKey].ex[i];if(f==="n"&&!v.trim())return;e[f]=v;save()}
+function cpB(){const t=$("bk");t.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}$("be").textContent=ok?"Copié":"Sélectionne le texte et copie-le à la main"}
+function rsB(){let o;try{o=JSON.parse($("bk").value)}catch(e){$("be").textContent="Texte invalide, rien n'a été changé";return}if(!o||!o.prog||!Array.isArray(o.hist)){$("be").textContent="Texte invalide, rien n'a été changé";return}P=o.prog;H=o.hist;B=o.body||[];save();go("home")}
+
+const V={home,seance,prog,corps,hist,reglages};
+function render(){const a=document.activeElement;if(a&&a.id==="bk")return;(V[location.hash.slice(1)]||home)()}
+addEventListener("hashchange",render);
+render();
+if(C&&A&&A.keepAwake)A.keepAwake(true);
+</script>
+</body>
+</html>
