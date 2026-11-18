@@ -1,4 +1,5 @@
 plugins { id 'com.android.application' }
+def run = System.getenv("GITHUB_RUN_NUMBER")
 android {
     namespace 'com.benoit.salle'
     compileSdk 34
@@ -6,8 +7,19 @@ android {
         applicationId 'com.benoit.salle'
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode run ? run.toInteger() : 1
+        versionName '1.' + (run ?: '0')
+    }
+    signingConfigs {
+        fixe {
+            storeFile rootProject.file('salle.keystore')
+            storePassword 'sallesalle'
+            keyAlias 'salle'
+            keyPassword 'sallesalle'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.fixe }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

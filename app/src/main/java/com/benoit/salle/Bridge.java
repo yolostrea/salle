@@ -1,10 +1,6 @@
 package com.benoit.salle;
 
 import android.app.Activity;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 
@@ -15,25 +11,23 @@ public class Bridge {
         this.act = act;
     }
 
-    private PendingIntent pending() {
-        Intent i = new Intent(act, TimerReceiver.class);
-        i.setAction("com.benoit.salle.REPOS");
-        return PendingIntent.getBroadcast(act, 1, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    }
-
     @JavascriptInterface
     public void timer(int seconds) {
-        AlarmManager am = (AlarmManager) act.getSystemService(Context.ALARM_SERVICE);
-        am.cancel(pending());
-        if (seconds > 0) {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + seconds * 1000L, pending());
-        }
+        Rest.start(act, seconds);
     }
 
     @JavascriptInterface
     public void cancelTimer() {
-        AlarmManager am = (AlarmManager) act.getSystemService(Context.ALARM_SERVICE);
-        am.cancel(pending());
+        Rest.stop(act);
+    }
+
+    @JavascriptInterface
+    public String version() {
+        try {
+            return act.getPackageManager().getPackageInfo(act.getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "?";
+        }
     }
 
     @JavascriptInterface
