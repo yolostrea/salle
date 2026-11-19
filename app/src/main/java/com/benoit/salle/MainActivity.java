@@ -64,8 +64,8 @@ public class MainActivity extends Activity {
         });
         web.addJavascriptInterface(new Bridge(this), "Android");
         setContentView(web);
-        if (state == null) web.loadUrl("file:///android_asset/index.html");
-        else web.restoreState(state);
+        // toujours recharger proprement : la page reprend elle-même la séance, la page et le défilement
+        web.loadUrl("file:///android_asset/index.html");
     }
 
     static void applyBars(Activity a, String status, String nav) {
@@ -104,12 +104,6 @@ public class MainActivity extends Activity {
         visible = false;
         Rest.showCountdown(this);
         super.onPause();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle out) {
-        super.onSaveInstanceState(out);
-        web.saveState(out);
     }
 
     @Override
