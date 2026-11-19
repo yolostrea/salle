@@ -22,6 +22,45 @@ public class Bridge {
         this.act = act;
     }
 
+    /** Copie de secours interne des données (en plus du stockage de la page). Écriture atomique. */
+    @JavascriptInterface
+    public void mirror(String json) {
+        try {
+            File dir = act.getFilesDir();
+            File tmp = new File(dir, "merlin.tmp"), dst = new File(dir, "merlin.json");
+            FileOutputStream o = new FileOutputStream(tmp);
+            o.write(json.getBytes(StandardCharsets.UTF_8));
+            o.getFD().sync();
+            o.close();
+            if (!tmp.renameTo(dst)) {
+                dst.delete();
+                tmp.renameTo(dst);
+            }
+        } catch (Exception e) {
+            // la copie échoue : le stockage de la page reste la référence
+        }
+    }
+
+    @JavascriptInterface
+    public String mirrorGet() {
+        try {
+            File f = new File(act.getFilesDir(), "merlin.json");
+            if (!f.exists()) return "";
+            byte[] b = new byte[(int) f.length()];
+            java.io.FileInputStream in = new java.io.FileInputStream(f);
+            int n = 0;
+            while (n < b.length) {
+                int r = in.read(b, n, b.length - n);
+                if (r < 0) break;
+                n += r;
+            }
+            in.close();
+            return new String(b, 0, n, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     @JavascriptInterface
     public void timer(int seconds) {
         Rest.start(act, seconds);
