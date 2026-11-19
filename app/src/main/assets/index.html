@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Merlin</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Merlin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#7a1d2a">
 <style>
 :root,[data-theme=bordeaux]{--bg:#fff;--card:#fff;--line:#e9e3e4;--tx:#21161a;--mu:#85737a;--ac:#7a1d2a;--ac2:#a3283a;--soft:#f7edef;--ok:#7a1d2a;--gold:#b7791f;--hi:#7a1d2a;--on:#fff;--sh:122,29,42}
 [data-theme=or]{--bg:#fdf8ef;--card:#fff;--line:#ecd9b8;--tx:#2a2016;--mu:#8c7a5e;--ac:#a8741a;--ac2:#c18a26;--soft:#f8ecd6;--ok:#a8741a;--gold:#a8741a;--hi:#a8741a;--on:#fff;--sh:168,116,26}
@@ -418,7 +425,10 @@ function autoBk(){
   let p="";try{p=A.backup(JSON.stringify({prog:P,hist:H,body:B,cfg:CFG}),"merlin-sauvegarde-"+dk()+".json")}catch(e){}
   if(p){CFG.lastBk={d:new Date().toISOString(),p};save()}return p;
 }
-function bkNow(){const p=autoBk();$("be").textContent=p?"Sauvegardé dans "+p:"Sauvegarde impossible pour l'instant"}
+async function bkWeb(){const n="merlin-sauvegarde-"+dk()+".json",f=new File([JSON.stringify({prog:P,hist:H,body:B,cfg:CFG})],n,{type:"application/json"});
+  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:n})}else{const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+  CFG.lastBk={d:new Date().toISOString(),p:"Fichiers"};save();$("be").textContent="Sauvegarde prête : "+n}catch(e){if(e&&e.name!=="AbortError")$("be").textContent="Sauvegarde impossible pour l'instant"}}
+function bkNow(){if(!(A&&A.backup))return bkWeb();const p=autoBk();$("be").textContent=p?"Sauvegardé dans "+p:"Sauvegarde impossible pour l'instant"}
 function rsFile(inp){const f=inp.files&&inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$("bk").value=r.result;rsB()};r.onerror=()=>{$("be").textContent="Fichier illisible, rien n'a été changé"};r.readAsText(f)}
 function finish(){
   const ex=C.ex.map(x=>({id:x.id,n:nom(x.id,x.n),sets:x.sets.filter(s=>s.done).map(s=>({kg:+s.kg||0,r:+s.r||0}))})).filter(x=>x.sets.length);
@@ -590,7 +600,7 @@ function reglages(){
   h+=sec("lvl","Niveau")+`<div class="card"><select onchange="CFG.niveau=this.value;save()">${Object.entries(NIV).map(([k,v])=>`<option value="${k}" ${(CFG.niveau||"int")===k?"selected":""}>${v[1]}</option>`).join("")}</select><p class="h" style="margin-top:8px">Sert à calculer les charges conseillées des exercices jamais faits (avec ton dernier poids du corps). Ensuite, l'appli se base sur tes vraies séances.</p></div>`;
   h+=sec("timer","Minuteur")+`<div class="card rw"><div><b>Repos</b><div class="h">En arrière-plan, une notification affiche le compte à rebours, puis le téléphone vibre.</div></div><button class="g" onclick="startT(5)">Tester 5 s</button></div>`;
   const lb=CFG.lastBk;
-  h+=sec("save","Sauvegarde")+`<div class="card"><b>Sauvegarde automatique</b><div class="h" style="margin:4px 0 10px">${A&&A.backup?(lb?"Dernière : "+new Date(lb.d).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+" · "+esc(lb.p):"Après chaque séance, un fichier est enregistré dans Téléchargements › Merlin. Il reste même si tu désinstalles l'appli."):"Disponible dans l'appli Android."}</div>
+  h+=sec("save","Sauvegarde")+`<div class="card"><b>Sauvegarde automatique</b><div class="h" style="margin:4px 0 10px">${A&&A.backup?(lb?"Dernière : "+new Date(lb.d).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+" · "+esc(lb.p):"Après chaque séance, un fichier est enregistré dans Téléchargements › Merlin. Il reste même si tu désinstalles l'appli."):(lb?"Dernière sauvegarde le "+new Date(lb.d).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+". ":"")+"Touche « Sauvegarder maintenant » puis « Enregistrer dans Fichiers ». Fais-le de temps en temps."}</div>
   <div class="row"><button class="b" style="flex:1" onclick="bkNow()">Sauvegarder maintenant</button><label class="g" style="flex:1;text-align:center;cursor:pointer">Restaurer un fichier<input type="file" accept=".json,application/json" style="display:none" onchange="rsFile(this)"></label></div></div>
   <div class="card"><div class="h" style="margin-bottom:8px">Copie manuelle : tu peux aussi copier ce texte et le coller ailleurs.</div><textarea id="bk" rows="3">${esc(JSON.stringify({prog:P,hist:H,body:B,cfg:CFG}))}</textarea><div class="row" style="margin-top:10px"><button class="b" style="flex:1" onclick="cpB()">Copier</button><button class="g" style="flex:1" onclick="rsB()">Restaurer</button></div><p id="be" class="err"></p></div>`;
   h+=`<div class="ft" onclick="egg(this)"><svg viewBox="0 0 24 24"><path pathLength="1" d="M12 3L21 19H3Z"/><path pathLength="1" d="M12 8.5L18 19H6Z"/><path pathLength="1" d="M12 13.5L15 19H9Z"/></svg>Merlin · v${esc(ver)}</div>`;
@@ -662,12 +672,19 @@ function psyOn(){CFG.psy=1;save();const o=document.createElement("div");o.id="ps
   setTimeout(()=>{setTheme("psy");reglages()},1200);setTimeout(()=>o.classList.add("out"),2900);setTimeout(()=>o.remove(),3700)}
 function hsl2hex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return "#"+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join("")}
 setInterval(()=>{if(CFG.theme==="psy"&&A&&A.bars){const v=getComputedStyle(document.documentElement).getPropertyValue("--hu");const h=((+v||0)+268)%360;try{A.bars(hsl2hex(h,72,46),"#fbf7ff")}catch(e){}}},2000);
+if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{});if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}
 let spDone=0;function setNom(){const i=$("spn"),k=$("spk"),v=i.value.trim();if(!v){i.focus();return}if(k.classList.contains("on"))return;i.blur();k.classList.add("on","pop");CFG.nom=v.slice(0,20);try{save();render()}catch(e){}setTimeout(spOff,650)}
 function spOff(){if(spDone)return;if(!CFG.nom){const a=$("spa");if(a&&!a.classList.contains("on")){a.classList.add("on");setTimeout(()=>$("spn").focus(),400)}return}spDone=1;const e=$("sp");if(e){e.classList.add("out");setTimeout(()=>e.remove(),800)}}
-applyTheme();{const d=$("spd");if(d)d.textContent=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}setTimeout(spOff,3700);setInterval(()=>{const e=$("chr");if(e)e.textContent=dur()},1000);
+applyTheme();{const d=$("spd");if(d)d.textContent=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}
+/* reprise : si l'appli a été utilisée il y a moins de 30 min, pas d'écran de lancement, retour à la même page et au même endroit */
+const RS=(()=>{try{return JSON.parse(localStorage.getItem("sl:resume")||"null")}catch(e){return null}})();
+const QUICK=!!(CFG.nom&&RS&&Date.now()-RS.t<30*60e3);
+function keepRs(){try{localStorage.setItem("sl:resume",JSON.stringify({t:Date.now(),h:location.hash,y:Math.round(scrollY)}))}catch(e){}}
+addEventListener("visibilitychange",()=>{if(document.hidden)keepRs()});addEventListener("pagehide",keepRs);setInterval(()=>{if(!document.hidden)keepRs()},5000);
+if(QUICK){spDone=1;const e=$("sp");if(e)e.remove();if(!location.hash&&RS.h&&RS.h!=="#")history.replaceState(null,"",RS.h)}else setTimeout(spOff,3700);setInterval(()=>{const e=$("chr");if(e)e.textContent=dur()},1000);
 const V={home,seance,prog,corps,hist,disques,reglages};
 addEventListener("hashchange",()=>{an();render()});
-an();render();
+if(QUICK){render();requestAnimationFrame(()=>scrollTo(0,RS.y||0))}else{an();render()}
 if(C&&A&&A.keepAwake)A.keepAwake(true);
 </script>
 </body>
