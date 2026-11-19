@@ -287,13 +287,17 @@ const A=window.Android||null;
 function render(){const a=document.activeElement;if(a&&(a.id==="bk"||a.classList.contains("note")))return;(V[location.hash.slice(1)]||home)()}
 const go=h=>{an();if(h==="hist")hs={};if(h==="prog")pg={g:null,e:null};if(location.hash.slice(1)===h)render();else location.hash=h;scrollTo(0,0)};
 
+/* filet de sécurité Android : si le stockage de la page est vide mais qu'une copie existe dans l'appli, on la recharge */
+(()=>{try{if(A&&A.mirrorGet&&localStorage.getItem("sl:cfg")==null){const m=A.mirrorGet();if(m){const o=JSON.parse(m);["prog","hist","cur","body","cfg"].forEach(k=>{if(o[k]!=null)localStorage.setItem("sl:"+k,JSON.stringify(o[k]))})}}}catch(e){}})();
+let mirN=-1,shrinkOk=false,mirT;
+function mirror(){if(!(A&&A.mirror))return;clearTimeout(mirT);mirT=setTimeout(()=>{try{if(mirN<0){const m=A.mirrorGet&&A.mirrorGet();mirN=m?((JSON.parse(m).hist||[]).length):0}if(H.length<mirN&&!shrinkOk)return;A.mirror(JSON.stringify({prog:P,hist:H,cur:C,body:B,cfg:CFG}));mirN=H.length;shrinkOk=false}catch(e){}},300)}
 let P=ls("prog"),H=ls("hist")||[],C=ls("cur"),B=ls("body")||[],CFG=ls("cfg")||{bar:20,plates:[25,20,15,10,5,2.5,1.25]};
 let pg={g:null,e:null},peKey="HA",openPl={},openG={},rp=null;
 if(!P){P={rot:DEF.rot,s:{}};for(const k in DEF.s)P.s[k]={nom:DEF.s[k].nom,ex:DEF.s[k].ex.map(([id,n,s,lo,hi,inc,rest,bar])=>({id,n,s,lo,hi,inc,rest,bar:!!bar}))}}
 // migration : ajoute des identifiants aux anciennes données
 (function(){const byName={};for(const k in P.s)P.s[k].ex.forEach(e=>{if(!e.id){const d=Object.values(DEF.s).flatMap(s=>s.ex).find(x=>x[1]===e.n);e.id=d?d[0]:(byName[e.n]||uid());if(d&&e.bar===undefined)e.bar=!!d[7]}byName[e.n]=e.id});
 H.forEach(s=>s.ex.forEach(e=>{if(!e.id)e.id=byName[e.n]||(byName[e.n]=uid())}));if(C)C.ex.forEach(e=>{if(!e.id)e.id=byName[e.n]||uid()})})();
-const save=()=>{ls("prog",P);ls("hist",H);ls("cur",C);ls("body",B);ls("cfg",CFG)};save();
+const save=()=>{ls("prog",P);ls("hist",H);ls("cur",C);ls("body",B);ls("cfg",CFG);mirror()};save();
 const exDef=id=>{for(const k in P.s){const e=P.s[k].ex.find(e=>e.id===id);if(e)return e}return null};
 const nom=(id,fb)=>(exDef(id)||{}).n||fb||id;
 
@@ -561,7 +565,7 @@ function hist(){
 }
 function setNote(id,v){const s=H.find(s=>s.id===id);if(s){s.note=v.trim();save();toast("Note enregistrée")}}
 let dh=null;
-function delH(id){if(dh!==id){dh=id;toast("Appuie encore sur × pour supprimer");setTimeout(()=>dh=null,3000);return}H=H.filter(s=>s.id!==id);save();hist()}
+function delH(id){if(dh!==id){dh=id;toast("Appuie encore sur × pour supprimer");setTimeout(()=>dh=null,3000);return}shrinkOk=true;H=H.filter(s=>s.id!==id);save();hist()}
 function disques(){
   $("v").innerHTML=hero("Outil","Calculateur de disques",true)+`<div class="card"><input id="dk" type="number" inputmode="decimal" step="0.5" max="999" placeholder="Charge totale voulue (kg)" oninput="clampI(this,999);$('dres').innerHTML=platesHtml(this.value)"><div id="dres" style="margin-top:6px"></div></div>
   <div class="card"><div class="h">Barre (kg)</div><input type="number" step="0.5" value="${CFG.bar}" max="999" oninput="clampI(this,999);setBar(this.value)">
@@ -608,7 +612,7 @@ function reglages(){
 }
 function pe(i,f,v){const e=P.s[peKey].ex[i];if(f==="n"&&!v.trim())return;e[f]=v;save()}
 function cpB(){const t=$("bk");t.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}$("be").textContent=ok?"Copié":"Sélectionne le texte et copie-le à la main"}
-function rsB(){let o;try{o=JSON.parse($("bk").value)}catch(e){$("be").textContent="Texte invalide, rien n'a été changé";return}if(!o||!o.prog||!Array.isArray(o.hist)){$("be").textContent="Texte invalide, rien n'a été changé";return}P=o.prog;H=o.hist;B=o.body||[];{const th=CFG.theme||"bordeaux";if(o.cfg)CFG=o.cfg;CFG.theme=th}save();location.reload()}
+function rsB(){let o;try{o=JSON.parse($("bk").value)}catch(e){$("be").textContent="Texte invalide, rien n'a été changé";return}if(!o||!o.prog||!Array.isArray(o.hist)){$("be").textContent="Texte invalide, rien n'a été changé";return}shrinkOk=true;P=o.prog;H=o.hist;B=o.body||[];{const th=CFG.theme||"bordeaux";if(o.cfg)CFG=o.cfg;CFG.theme=th}save();location.reload()}
 
 const START={dc:[.6,"b"],trac:[0,"pc"],dm:[.35,"b"],rowh:[.5,"m"],elev:[.07,"h"],curl:[.22,"b"],ext:[.22,"m"],dih:[.2,"h"],tirp:[.55,"m"],dips:[0,"pc"],rowhal:[.28,"h"],curli:[.09,"h"],exth:[.18,"m"],squat:[.7,"b"],sdtr:[.65,"b"],presse:[1.4,"m"],legc:[.35,"m"],molld:[.6,"m"],sdt:[.9,"b"],fentes:[.12,"h"],hack:[.9,"m"],lege:[.4,"m"],molla:[.45,"m"]};
 const NIV={deb:[.75,"Débutant (moins de 6 mois)"],int:[1,"Intermédiaire (6 mois à 2 ans)"],conf:[1.3,"Confirmé (plus de 2 ans)"]};
