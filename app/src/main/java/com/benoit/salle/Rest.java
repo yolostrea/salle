@@ -32,7 +32,14 @@ final class Rest {
         am.cancel(alarm(c));
         if (seconds <= 0) { stop(c); return; }
         end = System.currentTimeMillis() + seconds * 1000L;
-        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, end, alarm(c));
+        // alarme exacte (type réveil) : sonne à l'heure même écran éteint ; sinon repli sur l'alarme normale
+        boolean exact = android.os.Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms();
+        try {
+            if (exact) am.setAlarmClock(new AlarmManager.AlarmClockInfo(end, open(c)), alarm(c));
+            else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, end, alarm(c));
+        } catch (Exception e) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, end, alarm(c));
+        }
         if (!MainActivity.visible) showCountdown(c);
     }
 
@@ -46,8 +53,15 @@ final class Rest {
         if (end <= System.currentTimeMillis()) return;
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
-            nm.createNotificationChannel(new NotificationChannel("compte", "Compte à rebours du repos", NotificationManager.IMPORTANCE_LOW));
-            Notification n = new Notification.Builder(c, "compte")
+            // importance normale mais silencieuse : visible sur l'écran verrouillé (les canaux « faibles » y sont souvent masqués)
+            NotificationChannel ch = new NotificationChannel("compte2", "Compte à rebours du repos", NotificationManager.IMPORTANCE_DEFAULT);
+            ch.setSound(null, null);
+            ch.enableVibration(false);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            nm.createNotificationChannel(ch);
+            Notification n = new Notification.Builder(c, "compte2")
+                    .setVisibility(Notification.VISIBILITY_PUBLIC)
+                    .setCategory(Notification.CATEGORY_PROGRESS)
                     .setSmallIcon(R.drawable.ic_notif)
                     .setContentTitle("Repos en cours")
                     .setContentText("Prochaine série à la fin du compte à rebours")
@@ -79,8 +93,15 @@ final class Rest {
         if (MainActivity.visible) return;
         try {
             NotificationManager nm = c.getSystemService(NotificationManager.class);
-            nm.createNotificationChannel(new NotificationChannel("repos", "Fin du repos", NotificationManager.IMPORTANCE_HIGH));
-            Notification n = new Notification.Builder(c, "repos")
+            // le bip et la vibration sont joués par TimerReceiver : notification sans son pour ne pas doubler
+            NotificationChannel ch = new NotificationChannel("repos2", "Fin du repos", NotificationManager.IMPORTANCE_HIGH);
+            ch.setSound(null, null);
+            ch.enableVibration(false);
+            ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            nm.createNotificationChannel(ch);
+            Notification n = new Notification.Builder(c, "repos2")
+                    .setVisibility(Notification.VISIBILITY_PUBLIC)
+                    .setCategory(Notification.CATEGORY_ALARM)
                     .setSmallIcon(R.drawable.ic_notif)
                     .setContentTitle("Repos terminé")
                     .setContentText("Série suivante !")

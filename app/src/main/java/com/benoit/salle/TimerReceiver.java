@@ -15,6 +15,14 @@ public class TimerReceiver extends BroadcastReceiver {
         } catch (Exception e) {
             // pas de vibreur
         }
+        // bip sur le volume « alarme » : s'entend même téléphone en mode vibreur ou silencieux
+        try {
+            final android.media.ToneGenerator tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 90);
+            tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 900);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(tg::release, 1500);
+        } catch (Exception e) {
+            // pas de son disponible
+        }
         Rest.done(c);
     }
 }

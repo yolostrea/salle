@@ -61,6 +61,36 @@ public class Bridge {
         }
     }
 
+    /** Notifications autorisées ? (sinon pas de compte à rebours écran éteint) */
+    @JavascriptInterface
+    public boolean notifOk() {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 33
+                    && act.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) return false;
+            return act.getSystemService(android.app.NotificationManager.class).areNotificationsEnabled();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /** Redemande l'autorisation, ou ouvre les réglages de notifications de l'appli si elle a été refusée. */
+    @JavascriptInterface
+    public void askNotif() {
+        act.runOnUiThread(() -> {
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 33 && act.shouldShowRequestPermissionRationale("android.permission.POST_NOTIFICATIONS")) {
+                    act.requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
+                } else {
+                    android.content.Intent i = new android.content.Intent("android.settings.APP_NOTIFICATION_SETTINGS");
+                    i.putExtra("android.provider.extra.APP_PACKAGE", act.getPackageName());
+                    act.startActivity(i);
+                }
+            } catch (Exception e) {
+                // rien
+            }
+        });
+    }
+
     @JavascriptInterface
     public void timer(int seconds) {
         Rest.start(act, seconds);
