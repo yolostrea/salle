@@ -124,6 +124,92 @@ public class Bridge {
         });
     }
 
+    /** GPS : démarre le suivi. Renvoie "ok", ou "perm" si l'autorisation de localisation manque (elle est alors demandée). */
+    @JavascriptInterface
+    public String gpsStart(boolean kmBeep) {
+        if (act.checkSelfPermission("android.permission.ACCESS_FINE_LOCATION") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            act.runOnUiThread(() -> act.requestPermissions(new String[]{"android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"}, 7));
+            return "perm";
+        }
+        GpsService.reset();
+        GpsService.kmBeep = kmBeep;
+        GpsService.on = true;
+        try {
+            act.startForegroundService(new android.content.Intent(act, GpsService.class));
+        } catch (Exception e) {
+            GpsService.on = false;
+            return "err";
+        }
+        return "ok";
+    }
+
+    @JavascriptInterface
+    public void gpsPause(boolean p) {
+        GpsService.setPaused(p);
+    }
+
+    /** État du moment : {on, dist (m), acc (m), fix (ms depuis le dernier point), v (m/s sur ~20 s), km, ms} */
+    @JavascriptInterface
+    public String gpsState() {
+        synchronized (GpsService.class) {
+            double v = 0;
+            if (GpsService.recent.size() > 1) {
+                double[] a = GpsService.recent.get(0), b = GpsService.recent.get(GpsService.recent.size() - 1);
+                if (b[0] > a[0]) v = (b[1] - a[1]) / ((b[0] - a[0]) / 1000.0);
+            }
+            long fix = GpsService.lastFix == 0 ? -1 : System.currentTimeMillis() - GpsService.lastFix;
+            return "{\"on\":" + GpsService.on + ",\"dist\":" + Math.round(GpsService.dist) + ",\"acc\":" + Math.round(GpsService.acc)
+                    + ",\"fix\":" + fix + ",\"v\":" + Math.round(v * 100) / 100.0 + ",\"km\":" + GpsService.splits.size() + ",\"ms\":" + GpsService.runMs() + "}";
+        }
+    }
+
+    /** Arrête le suivi et renvoie le parcours : {dist, splits:[ms], pts:[[lat,lon]]} (au plus ~300 points). */
+    @JavascriptInterface
+    public String gpsStop() {
+        StringBuilder sb = new StringBuilder();
+        synchronized (GpsService.class) {
+            sb.append("{\"dist\":").append(Math.round(GpsService.dist)).append(",\"splits\":[");
+            for (int i = 0; i < GpsService.splits.size(); i++) sb.append(i > 0 ? "," : "").append(GpsService.splits.get(i));
+            sb.append("],\"pts\":[");
+            int n = GpsService.pts.size(), step = Math.max(1, n / 300);
+            boolean first = true;
+            for (int i = 0; i < n; i += step) {
+                double[] q = GpsService.pts.get(i);
+                sb.append(first ? "" : ",").append("[").append(Math.round(q[0] * 1e5) / 1e5).append(",").append(Math.round(q[1] * 1e5) / 1e5).append("]");
+                first = false;
+            }
+            if (n > 1 && (n - 1) % step != 0) {
+                double[] q = GpsService.pts.get(n - 1);
+                sb.append(",[").append(Math.round(q[0] * 1e5) / 1e5).append(",").append(Math.round(q[1] * 1e5) / 1e5).append("]");
+            }
+            sb.append("]}");
+            GpsService.on = false;
+        }
+        try { act.stopService(new android.content.Intent(act, GpsService.class)); } catch (Exception e) { /* déjà arrêté */ }
+        return sb.toString();
+    }
+
+    /** Course guidée : programme les changements de phase (JSON [{at,lab,next,end}]). */
+    @JavascriptInterface
+    public void runPlan(String json) {
+        RunPlan.plan(act, json);
+    }
+
+    @JavascriptInterface
+    public void runStop() {
+        RunPlan.stop(act);
+    }
+
+    @JavascriptInterface
+    public void vibrate(int ms) {
+        try {
+            android.os.Vibrator v = act.getSystemService(android.os.Vibrator.class);
+            if (v != null) v.vibrate(android.os.VibrationEffect.createOneShot(Math.max(30, Math.min(ms, 2000)), -1));
+        } catch (Exception e) {
+            // pas de vibreur
+        }
+    }
+
     @JavascriptInterface
     public String backup(String json, String name) {
         try {

@@ -9,6 +9,10 @@ import android.os.Vibrator;
 public class TimerReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
+        if (RunPlan.ACT.equals(i.getAction())) {
+            RunPlan.phase(c, i);
+            return;
+        }
         try {
             Vibrator v = c.getSystemService(Vibrator.class);
             if (v != null) v.vibrate(VibrationEffect.createWaveform(new long[]{0, 400, 200, 400}, -1));
