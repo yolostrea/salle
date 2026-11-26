@@ -637,19 +637,19 @@ function cal(){
 }
 function calNav(d){calO=Math.min(0,calO+d);const e=$("cal");if(e)e.outerHTML=cal()}
 /* ===== succès ===== */
-function achStats(){
-  const S=H.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0),D=d=>{const[y,m,j]=d.split("-").map(Number);return new Date(y,m-1,j)};
-  const days=[...new Set([...S,...R].map(x=>x.date))].sort();let run=0,mxRun=0,prev=null;
+function achStats(HH=H,RR=R,BB=B){
+  const S=HH.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0),D=d=>{const[y,m,j]=d.split("-").map(Number);return new Date(y,m-1,j)};
+  const days=[...new Set([...S,...RR].map(x=>x.date))].sort();let run=0,mxRun=0,prev=null;
   days.forEach(d=>{const t=D(d);run=prev&&Math.round((t-prev)/864e5)===1?run+1:1;mxRun=Math.max(mxRun,run);prev=t});
   const wk={},mo={},byDay={};let tot=0,mxS=0,heavy=0,prs=0,n42=0,best={};
   S.forEach(x=>{const v=volS(x),t=D(x.date),m=new Date(t);m.setDate(t.getDate()-((t.getDay()+6)%7));const k=dk(m);
     (wk[k]=wk[k]||{n:0,v:0}).n++;wk[k].v+=v;mo[x.date.slice(0,7)]=(mo[x.date.slice(0,7)]||0)+1;byDay[x.date]=(byDay[x.date]||0)+1;tot+=v;mxS=Math.max(mxS,v);
     x.ex.forEach(e=>{let b=0;e.sets.forEach(z=>{heavy=Math.max(heavy,+z.kg||0);if(+z.kg===42||+z.r===42)n42++;b=Math.max(b,rm(z.kg,z.r))});if(b>0){if(best[e.id]!==undefined&&b>best[e.id])prs++;best[e.id]=Math.max(best[e.id]||0,b)}})});
-  R.forEach(x=>{const t=D(x.date),m=new Date(t);m.setDate(t.getDate()-((t.getDay()+6)%7));const k=dk(m);(wk[k]=wk[k]||{n:0,v:0}).n++;mo[x.date.slice(0,7)]=(mo[x.date.slice(0,7)]||0)+1;byDay[x.date]=(byDay[x.date]||0)+1});
+  RR.forEach(x=>{const t=D(x.date),m=new Date(t);m.setDate(t.getDate()-((t.getDay()+6)%7));const k=dk(m);(wk[k]=wk[k]||{n:0,v:0}).n++;mo[x.date.slice(0,7)]=(mo[x.date.slice(0,7)]||0)+1;byDay[x.date]=(byDay[x.date]||0)+1});
   const wks=Object.keys(wk).sort();let ws=0,mxWs=0,pw=null;wks.forEach(k=>{const t=D(k);if(wk[k].n>=2){ws=pw&&Math.round((t-pw)/864e5)===7?ws+1:1;mxWs=Math.max(mxWs,ws);pw=t}else{ws=0;pw=null}});
   const hr=x=>x.t0?new Date(x.t0).getHours():-1;
-  return{nR:R.length,maxD:Math.max(0,...R.map(r=>+r.dist||0)),totKm:R.reduce((a,r)=>a+(+r.dist||0),0),n:S.length,mxRun,mxWkN:Math.max(0,...Object.values(wk).map(w=>w.n)),mxWkV:Math.max(0,...Object.values(wk).map(w=>w.v)),mxMo:Math.max(0,...Object.values(mo)),mxWs,tot,mxS,heavy,prs,
-    notes:S.filter(x=>x.note).length,pes:B.length,night:S.some(x=>{const h=hr(x);return h>=0&&h<5}),dawn:S.some(x=>{const h=hr(x);return h>=5&&h<7}),n42,
+  return{nR:RR.length,maxD:Math.max(0,...RR.map(r=>+r.dist||0)),totKm:RR.reduce((a,r)=>a+(+r.dist||0),0),n:S.length,mxRun,mxWkN:Math.max(0,...Object.values(wk).map(w=>w.n)),mxWkV:Math.max(0,...Object.values(wk).map(w=>w.v)),mxMo:Math.max(0,...Object.values(mo)),mxWs,tot,mxS,heavy,prs,
+    notes:S.filter(x=>x.note).length,pes:BB.length,night:S.some(x=>{const h=hr(x);return h>=0&&h<5}),dawn:S.some(x=>{const h=hr(x);return h>=5&&h<7}),n42,
     long:S.some(x=>x.dur>=120),dbl:Object.values(byDay).some(c=>c>=2),ny:S.some(x=>x.date.slice(5)==="01-01"),psy:!!CFG.psy,merlin:/^merlin$/i.test((CFG.nom||"").trim())};
 }
 const ACH=[
@@ -682,8 +682,8 @@ const ACH=[
  ["Course","r10","Coureur régulier","10 courses enregistrées",0,s=>[s.nR,10]],
  ["Course","d5","5 km","5 km en une course",0,s=>[s.maxD,5]],
  ["Course","d10","10 km","10 km en une course",0,s=>[s.maxD,10]],
- ["Course","k50","50 km au compteur","50 km courus au total",0,s=>[s.totKm,50]],
- ["Course","k100","Cent bornes","100 km courus au total",0,s=>[s.totKm,100]],
+ ["Course","km50","50 km au compteur","50 km courus au total",0,s=>[s.totKm,50]],
+ ["Course","km100","Cent bornes","100 km courus au total",0,s=>[s.totKm,100]],
  ["Suivi","n10","Carnet de bord","10 séances avec une note",0,s=>[s.notes,10]],
  ["Suivi","p10","Sur la balance","10 pesées enregistrées",0,s=>[s.pes,10]],
  ["Suivi","p50","Suivi au gramme","50 pesées enregistrées",0,s=>[s.pes,50]],
@@ -695,8 +695,16 @@ const ACH=[
  ["Secrets","ny","Bonne résolution","Une séance un 1er janvier",1,s=>[+s.ny,1]],
  ["Secrets","psy","Psychonaute","Débloque le thème Psyché",1,s=>[+s.psy,1]],
  ["Secrets","mer","L'enchanteur","Appelle-toi Merlin · débloque le thème Enchanteur",1,s=>[+s.merlin,1]]];
-function achCheck(){const st=achStats(),got=CFG.ach=CFG.ach||{},nw=[];
-  ACH.forEach(a=>{const[c,t]=a[5](st);if(c>=t&&!got[a[1]]){got[a[1]]=dk();nw.push(a)}});if(nw.length)save();return{st,nw}}
+/* Succès : recalculés à partir des données (séances, courses, pesées). Chacun est daté du jour où il a été atteint,
+   et disparaît si les données qui le justifiaient sont supprimées. Seuls Psyché et Merlin (hors données) restent acquis. */
+const ACH_KEEP=["psy","mer"];let ACHD=null;
+function achDates(){const sig=H.length+"|"+R.length+"|"+B.length+"|"+[H,R,B].map(a=>a.reduce((m,x)=>x.date>m?x.date:m,"")).join("|")+"|"+H.reduce((a,x)=>a+x.ex.length,0);
+  if(ACHD&&ACHD.sig===sig)return ACHD.d;const out={},days=[...new Set([...H,...R,...B].map(x=>x.date))].sort();
+  for(const d of days){const st=achStats(H.filter(x=>x.date<=d),R.filter(x=>x.date<=d),B.filter(x=>x.date<=d));ACH.forEach(a=>{if(!out[a[1]]){const[c,t]=a[5](st);if(c>=t)out[a[1]]=d}})}
+  ACHD={sig,d:out};return out}
+function achCheck(){const st=achStats(),old=CFG.ach||{},ds=achDates(),got={},nw=[];
+  ACH.forEach(a=>{const id=a[1],[c,t]=a[5](st);if(c>=t||(ACH_KEEP.includes(id)&&old[id])){got[id]=ds[id]||old[id]||dk();if(!old[id])nw.push(a)}});
+  const ch=JSON.stringify(got)!==JSON.stringify(old);CFG.ach=got;if(ch)save();return{st,nw}}
 function achNote(nw){if(!nw.length)return;const th={night:"minuit",dawn:"aube",mer:"enchant"},t=nw.find(a=>th[a[1]]);if(t){toast("Thème "+THN[th[t[1]]]+" débloqué ✦");return}toast(nw.length>1?nw.length+" succès débloqués ✦":"Succès débloqué : "+nw[0][2]+" ✦")}
 function achBadge(a,on){return `<svg class="ach-i${on?" on":""}" viewBox="0 0 24 24"><path d="M12 2.5L22 20H2Z"/><path d="M12 9L17.5 19H6.5Z"/><path d="M12 14L14.6 19H9.4Z"/></svg>`}
 function succes(){
